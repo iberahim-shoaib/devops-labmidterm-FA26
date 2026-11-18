@@ -5,6 +5,7 @@ pipeline {
     environment {
         IMAGE_NAME = 'midterm-api'
         CONTAINER_NAME = 'midterm-api'
+        DOCKERHUB_IMAGE = 'iberahimshoaib/midterm-api'
     }
 
     stages {
@@ -48,14 +49,33 @@ print('Training output checks passed')
         }
 
         stage('Build Docker Image') {
-    steps {
-        sh '''
-            docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
-            docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${IMAGE_NAME}:latest
-            docker tag ${IMAGE_NAME}:${BUILD_NUMBER} iberahimshoaib/midterm-api:latest
-        '''
-    }
-}
+            steps {
+                sh '''
+                    docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${IMAGE_NAME}:latest
+                    docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${DOCKERHUB_IMAGE}:latest
+                '''
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhubcred',
+                    usernameVariable: 'DOCKERHUB_USERNAME',
+                    passwordVariable: 'DOCKERHUB_PASSWORD'
+                )]) {
+                    sh '''
+                        echo "$DOCKERHUB_PASSWORD" | docker login \
+                          -u "$DOCKERHUB_USERNAME" --password-stdin
+
+                        docker push ${DOCKERHUB_IMAGE}:latest
+
+                        docker logout
+                    '''
+                }
+            }
+        }
 
         stage('Deploy Application') {
             steps {
@@ -77,8 +97,9 @@ print('Training output checks passed')
 
     post {
         success {
-            echo 'Model trained and application deployed successfully.'
+            echo 'Model trained, Docker image pushed, and application deployed successfully.'
         }
+
         failure {
             echo 'Pipeline failed. Check the stage logs.'
         }
