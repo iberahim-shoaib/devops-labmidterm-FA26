@@ -96,12 +96,29 @@ print('Training output checks passed')
     }
 
     post {
-        success {
-            echo 'Model trained, Docker image pushed, and application deployed successfully.'
-        }
+    always {
+        emailext(
+            to: 'qasimalik@gmail.com',
+            from: 'ibrahimshoaib054@gmail.com',
+            subject: "FA23-BDS-018 - Jenkins Build ${BUILD_NUMBER} - ${currentBuild.currentResult}",
+            body: """
+Hello,
 
-        failure {
-            echo 'Pipeline failed. Check the stage logs.'
-        }
+The Jenkins pipeline for student FA23-BDS-018 has completed.
+
+Build Number: ${BUILD_NUMBER}
+Job Name: ${JOB_NAME}
+Build Status: ${currentBuild.currentResult}
+
+Docker Hub Image:
+iberahimshoaib/midterm-api:latest
+
+Build URL:
+${BUILD_URL}
+
+Regards,
+FA23-BDS-018
+            """
+        )
     }
 }
